@@ -335,6 +335,6 @@ if __name__ == "__main__":
     browser = TkFileBrowser(root, on_click)
     browser.pack(side = tk.LEFT)
 
-    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Users\Edward\Documents\random_pyapps")).pack(side = tk.LEFT)
+    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Any\file\or\folder")).pack(side = tk.LEFT)
 
     root.mainloop()
