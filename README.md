@@ -1,7 +1,7 @@
 # tkFileBrowser
 A file browser designed for use with Python tkinter applications
 
-![Demo image]((https://i.imgur.com/IXld2Ty.png))
+![Demo image](https://github.com/jwansek/tkFileBrowser/blob/master/demoimage.png?raw=true)
 
 * Uses the Windows API to get the exact icon for any folder or application.
 * Refreshes when drives are added or removed
