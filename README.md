@@ -43,3 +43,9 @@ List of file types that will show up. Empty means all files. Default []
 >showhidden
 
 Show hidden files "." or not. Default False
+
+>.see(path)
+
+Open all nodes to a path and ensure it is shown on screen
+
+More coming!
