@@ -9,7 +9,7 @@ import win32ui
 import win32gui
 import os
 
-#TODO: refresh tree
+#TODO: refresh tree (WIP)
 
 class TkFileBrowser(tk.Frame):
 
@@ -46,6 +46,10 @@ class TkFileBrowser(tk.Frame):
         Arguments:
             path {str} -- path to open to
         """
+        if not os.path.exists(path):
+            raise FileNotFoundError("The system couldn't find the path: '%s'" % path)
+            return
+
         #open the correct book tab
         split = path.replace("\\", "/").split("/")
 
@@ -64,12 +68,31 @@ class TkFileBrowser(tk.Frame):
             for i in range(len(split) - 1):
                 self._book._tabs[drive]._populate_path("\\".join(split[:i+2]))
                 self._book._tabs[drive]._tree.item("\\".join(split[:i+2]), open = True)
+                
+                #add to list of open nodes
+                self._open.append([split[0]+"\\", "\\".join(split[:i+2])])
 
             self._book._tabs[drive]._tree.see("\\".join(split))
 
-
     def refresh(self):
         self._book._refresh()
+
+        #TODO: update root nodes too
+
+        #work out which open nodes need to be updated
+        nodes_to_refresh = []
+        for i in self._open:
+            dir = i[1]
+            #work out all the dirs that the node is showing, ignoring the dummy by checking for paths
+            childirs = [p.split("\\")[-1] for p in self._book._tabs[i[0]]._tree.get_children(dir) if os.path.exists(p)]
+            
+            #work out all the dirs that are in the file system. Use our own method so that settings
+            #are still here, show hidden files, etc.
+            files, folders = self._book._tabs[i[0]]._get_dirs_in_path(dir)
+            actualdirs = files + folders
+
+            print(dir, actualdirs == childirs)
+
         self.after(self._refresh, self.refresh)
 
     def _get_icon(self, PATH, size):
@@ -148,6 +171,15 @@ class DriveBook(ttk.Notebook):
         #check if we need to refresh before refreshing
         if list(map(itemgetter(0), self._drive_icons)) != self._get_drives():
             #TODO: make a more efficient way of updading drive list than deleting all of them and re-making
+            display = [i[0] for i in self._drive_icons]
+            new = self._get_drives()
+
+            removals = list(set(display).difference(new))
+            additions = list(set(new).difference(display))
+            
+            print(additions)
+            
+            
             for tab in self.tabs():
                 self.forget(tab)
             
@@ -160,6 +192,14 @@ class DriveBook(ttk.Notebook):
         drives = self._get_drives()
         return [[drive, ImageTk.PhotoImage(self._parent._get_icon(drive, "small"))] for drive in drives]
 
+    def _get_tab_name(self):
+        """Returns the name of the tab which is currently open
+        
+        Returns:
+            int -- the name of the tab that's currently open e.g. C:\\, C:\\Users\\Fred
+        """
+
+        return self._get_drives()[self.index(self.select())]
 
 class FileTree(tk.Frame):
     def __init__(self, parent, drive):
@@ -188,10 +228,17 @@ class FileTree(tk.Frame):
 
         self._populate_path(drive)
         self._tree.bind('<<TreeviewOpen>>', self._on_click)
+        self._tree.bind('<<TreeviewClose>>', self._on_close)
 
     def _on_click(self, event):
         id = os.path.normpath(self._tree.focus())
-        print(id)
+
+        #add to the list of open nodes
+        if os.path.isdir(id):
+            #add both the tab name and the path, since the same path could be open in multiple places
+            self._parent._parent._open.append([self._parent._get_tab_name(), id])
+            print(self._parent._parent._open)
+
         if os.path.isfile(id):
             self._command(id)
         else:
@@ -202,6 +249,21 @@ class FileTree(tk.Frame):
                 for child in self._tree.get_children(id):
                     self._tree.delete(child)
                 self._populate_path(id)
+
+    def _on_close(self, event):
+        id = os.path.normpath(self._tree.focus())
+        try:
+            self._parent._parent._open.remove([self._parent._get_tab_name(), id])
+        except ValueError:
+            #already removed by parent
+            pass
+        
+        #delete children of the node that's just been closed too
+        for child in self._parent._parent._open:
+            if id[1] in child[1] and id[0] == id[0]:
+                self._parent._parent._open.remove(child)
+
+        print(self._parent._parent._open)
     
     def _get_size(self, path):
         """Returns the size of a file. From:
@@ -247,7 +309,7 @@ class FileTree(tk.Frame):
                 image = self._parent._foldericons[fullpath],
                 values = [folder, "", ""])
             #setup a dummy so the '+' appears before it's loaded. Child stuff will be loaded when the user
-            #clicks on the plus
+            #clicks on the plus, and the dummy will be removed. (or not if there are no files)
             self._tree.insert(parent = fullpath, index = tk.END, tag = "dummy", text = "No avaliable files")
 
         for file in files:
@@ -332,9 +394,9 @@ def on_click(path):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    browser = TkFileBrowser(root, on_click)
+    browser = TkFileBrowser(root, command = on_click)
     browser.pack(side = tk.LEFT)
 
-    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Any\file\or\folder")).pack(side = tk.LEFT)
+    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Users\Edward\Documents\random_pyapps\tkFileBrowser\tkFileBrowser\empty_folder")).pack(side = tk.LEFT)
 
     root.mainloop()
