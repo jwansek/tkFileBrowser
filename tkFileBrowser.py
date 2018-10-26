@@ -2,6 +2,7 @@ from operator import itemgetter
 import tkinter as tk
 from tkinter import ttk
 from win32com.shell import shell, shellcon
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import win32api
 import win32con
@@ -79,10 +80,14 @@ class TkFileBrowser(tk.Frame):
 
         #TODO: update root nodes too
 
+        print(self._open)
+
         #work out which open nodes need to be updated
         nodes_to_refresh = []
         for i in self._open:
             dir = i[1]
+            if not os.path.exists(dir):
+                continue
             #work out all the dirs that the node is showing, ignoring the dummy by checking for paths
             childirs = [p.split("\\")[-1] for p in self._book._tabs[i[0]]._tree.get_children(dir) if os.path.exists(p)]
             
@@ -91,7 +96,7 @@ class TkFileBrowser(tk.Frame):
             files, folders = self._book._tabs[i[0]]._get_dirs_in_path(dir)
             actualdirs = files + folders
 
-            print(dir, actualdirs == childirs)
+            #print(dir, actualdirs == childirs)
 
         self.after(self._refresh, self.refresh)
 
@@ -170,20 +175,36 @@ class DriveBook(ttk.Notebook):
 
         #check if we need to refresh before refreshing
         if list(map(itemgetter(0), self._drive_icons)) != self._get_drives():
-            #TODO: make a more efficient way of updading drive list than deleting all of them and re-making
             display = [i[0] for i in self._drive_icons]
             new = self._get_drives()
 
             removals = list(set(display).difference(new))
             additions = list(set(new).difference(display))
+
+            #print("removed: ", removals, "added: ", additions)
             
-            print(additions)
-            
-            
-            for tab in self.tabs():
-                self.forget(tab)
-            
-            self._draw_tabs()
+            for removal in removals:
+                #delete open nodes that have just been removed
+                self._parent._open = [i for i in self._parent._open if i[0] != removal]
+
+                #deelte the tab
+                try:
+                    self.forget(self._tabs[removal])
+                except tk.TclError:
+                    #TODO: work out why this throws an error when it still works
+                    pass
+
+                #remove from tab dictionary
+                del self._tabs[removal]
+
+                #reset drive icons
+                self._drive_icons = [i for i in self._drive_icons if i[0] != removal]
+
+            if additions != []:
+                for tab in self.tabs():
+                    self.forget(tab)
+                
+                self._draw_tabs()
 
     def _get_drives(self):
         return [os.path.expanduser("~")] + win32api.GetLogicalDriveStrings().split('\x00')[:-1]
@@ -237,7 +258,7 @@ class FileTree(tk.Frame):
         if os.path.isdir(id):
             #add both the tab name and the path, since the same path could be open in multiple places
             self._parent._parent._open.append([self._parent._get_tab_name(), id])
-            print(self._parent._parent._open)
+            #print(self._parent._parent._open)
 
         if os.path.isfile(id):
             self._command(id)
@@ -263,7 +284,7 @@ class FileTree(tk.Frame):
             if id[1] in child[1] and id[0] == id[0]:
                 self._parent._parent._open.remove(child)
 
-        print(self._parent._parent._open)
+        #print(self._parent._parent._open)
     
     def _get_size(self, path):
         """Returns the size of a file. From:
