@@ -1,3 +1,4 @@
+from glob import glob
 from operator import itemgetter
 import tkinter as tk
 from tkinter import ttk
@@ -10,7 +11,13 @@ import win32ui
 import win32gui
 import os
 
-#TODO: refresh tree (WIP)
+#stuff to do:
+#   fix the icon error, even though I literally have changed nothing to do with them
+#   and they've stopped working for some reason
+
+#   make the files actually refresh instead of just detecting it
+
+#   keep  current nodes open when a new drive is plugged in
 
 class TkFileBrowser(tk.Frame):
 
@@ -80,7 +87,7 @@ class TkFileBrowser(tk.Frame):
 
         #TODO: update root nodes too
 
-        print(self._open)
+        #print(self._open)
 
         #work out which open nodes need to be updated
         nodes_to_refresh = []
@@ -96,7 +103,7 @@ class TkFileBrowser(tk.Frame):
             files, folders = self._book._tabs[i[0]]._get_dirs_in_path(dir)
             actualdirs = files + folders
 
-            #print(dir, actualdirs == childirs)
+            print(dir, actualdirs == childirs)
 
         self.after(self._refresh, self.refresh)
 
@@ -271,20 +278,36 @@ class FileTree(tk.Frame):
                     self._tree.delete(child)
                 self._populate_path(id)
 
+        print("\n clicked: ", self._parent._parent._open)
+
     def _on_close(self, event):
+        """Method called when the user closes a node. This must delete the node,
+        and it's children, from the list of open nodes. To do this, a recursive
+        algoritm is used. We have to use this, as opposed to something like os.walk()
+        for preformance. A large folder could have thousands of children. This doesn't
+        'go deeper' unless the node in the tree is open.
+        
+        Arguments:
+            event {tkinter event} -- tkinter event is used to get the id,
+        """
+
         id = os.path.normpath(self._tree.focus())
+        drive = self._parent._get_tab_name()
+
+        def recurse(path):
+            glob_pattern = os.path.join(path, '*')
+            for dir in sorted(glob(glob_pattern), key=os.path.getctime):
+                if os.path.isdir(dir) and self._tree.item(dir, "open"):
+                    self._parent._parent._open.remove([drive, dir])
+                    recurse(dir)
+
         try:
-            self._parent._parent._open.remove([self._parent._get_tab_name(), id])
+            self._parent._parent._open.remove([drive, id])
         except ValueError:
             #already removed by parent
             pass
-        
-        #delete children of the node that's just been closed too
-        for child in self._parent._parent._open:
-            if id[1] in child[1] and id[0] == id[0]:
-                self._parent._parent._open.remove(child)
 
-        #print(self._parent._parent._open)
+        recurse(id)
     
     def _get_size(self, path):
         """Returns the size of a file. From:
@@ -408,7 +431,6 @@ class FileTree(tk.Frame):
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
         return folders, files
-
 
 def on_click(path):
     print("click: ", path)
