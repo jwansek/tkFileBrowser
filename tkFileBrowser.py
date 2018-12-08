@@ -2,22 +2,15 @@ from glob import glob
 from operator import itemgetter
 import tkinter as tk
 from tkinter import ttk
-from win32com.shell import shell, shellcon
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import win32api
-import win32con
-import win32ui
-import win32gui
+import winIcon
 import os
 
 #stuff to do:
-#   fix the icon error, even though I literally have changed nothing to do with them
-#   and they've stopped working for some reason
-
 #   make the files actually refresh instead of just detecting it
 
-#   keep  current nodes open when a new drive is plugged in
 
 class TkFileBrowser(tk.Frame):
 
@@ -48,6 +41,7 @@ class TkFileBrowser(tk.Frame):
         self._book.pack(fill = tk.BOTH, expand = True)
         self.after(self._refresh, self.refresh)
 
+    #TODO: fix a bug here
     def see(self, path):
         """Open the tree and book to this folder
         
@@ -55,7 +49,7 @@ class TkFileBrowser(tk.Frame):
             path {str} -- path to open to
         """
         if not os.path.exists(path):
-            raise FileNotFoundError("The system couldn't find the path: '%s'" % path)
+            print("The system couldn't find the path: '%s'" % path)
             return
 
         #open the correct book tab
@@ -83,11 +77,16 @@ class TkFileBrowser(tk.Frame):
             self._book._tabs[drive]._tree.see("\\".join(split))
 
     def refresh(self):
+        def get_drive_and_path(search):
+            out = []
+            for i in self._open:
+                if i[1] == search:
+                    out.append(i)
+            return out
+
         self._book._refresh()
 
-        #TODO: update root nodes too
-
-        #print(self._open)
+        print(self._open)
 
         #work out which open nodes need to be updated
         nodes_to_refresh = []
@@ -96,23 +95,117 @@ class TkFileBrowser(tk.Frame):
             if not os.path.exists(dir):
                 continue
             #work out all the dirs that the node is showing, ignoring the dummy by checking for paths
-            childirs = [p.split("\\")[-1] for p in self._book._tabs[i[0]]._tree.get_children(dir) if os.path.exists(p)]
+            childirs = [p.split("\\")[-1] for p in self._book._tabs[i[0]]._tree.get_children(dir) if "\\" in p]
             
             #work out all the dirs that are in the file system. Use our own method so that settings
             #are still here, show hidden files, etc.
             files, folders = self._book._tabs[i[0]]._get_dirs_in_path(dir)
             actualdirs = files + folders
 
-            print(dir, actualdirs == childirs)
+            if actualdirs != childirs:
+                nodes_to_refresh.append(dir)
+
+
+        #add drives to the list of stuff to check for updates
+        for drive in self._book._get_drives():
+            childirs = [p.split("\\")[-1] for p in self._book._tabs[drive]._tree.get_children("")]
+            files, folders = self._book._tabs[drive]._get_dirs_in_path(drive)
+            actualdirs = files + folders
+            if actualdirs != childirs:
+                nodes_to_refresh.append(drive)
+
+        #print(nodes_to_refresh)
+
+        drive_and_node = []
+        for node in nodes_to_refresh:
+            for drive, node1 in get_drive_and_path(node):
+
+                orignode = node1
+                if node1 == drive:
+                    node1 = ""
+
+                #print("node: ", node1, "\ndrive: ", drive)
+                tree = self._book._tabs[drive]._tree
+                children = tree.get_children(node1)
+
+                #get the full path of removals and additons
+                glob_pattern = os.path.join(orignode, "*")
+                deletions = list(set(list(children)) - set(sorted(glob(glob_pattern), key=os.path.getctime)))
+                additions = list(set(sorted(glob(glob_pattern), key=os.path.getctime)) - set(list(children)))
+
+                #print("deletions: ", deletions, "\nadditions: ", additions)
+
+                #delete from tree
+                for deletion in deletions:
+                    tree.delete(deletion)
+                    #if the node is open, and it's just been deleteted, remove it from the list
+                    if [drive.replace("\\", "\\"), deletion.replace("\\", "\\")] in self._open:
+                        self._open.remove([drive.replace("\\", "\\"), deletion.replace("\\", "\\")])
+
+        #     #add new entries in the correct place, highlighting them and getting appropitate icons
+        #     for addition in additions:
+
+        #         if os.path.isdir(addition):
+        #             #make an icon if it doesn't already exist
+        #             if addition not in self._book._foldericons:
+        #                 self._book._foldericons[addition] = ImageTk.PhotoImage(
+        #                     self._get_icon(addition))
+
+        #             #get the name
+        #             folder = addition.split("\\")[-1]
+
+        #             tree.insert(
+        #                 parent = node, 
+        #                 index = os.listdir(orignode).index(folder), #insert in an appropriate place
+        #                 iid = addition,
+        #                 tags = (addition, ),
+        #                 text = folder,
+        #                 image = self._book._foldericons[addition],
+        #                 values = [folder, "", ""])
+        #             #setup a dummy so the '+' appears before it's loaded. Child stuff will be loaded when the user
+        #             #clicks on the plus, and the dummy will be removed. (or not if there are no files)
+        #             tree.insert(parent = addition, index = tk.END, tag = "dummy", text = "No avaliable files")
+
+        #         elif os.path.isfile(addition):
+        #             _, type_ = os.path.splitext(addition)
+        
+        #             if type_ == ".lnk" or type_ == ".exe":
+        #                 if addition not in self._book._fileicons:
+        #                     self._book._fileicons[addition] = ImageTk.PhotoImage(
+        #                         self._get_icon(addition)
+        #                     )
+        #                 icon = self._book._fileicons[addition]
+        #             else:
+        #                 if type_ not in self._book._fileicons:
+        #                     self._book._fileicons[type_] = ImageTk.PhotoImage(
+        #                         self._get_icon(type_)
+        #                     )
+        #                 icon = self._book._fileicons[type_]
+
+        #             file = addition.split("\\")[-1]
+        #             tree.insert(
+        #                 parent = node, 
+        #                 index = tk.END, 
+        #                 iid = addition,
+        #                 tag = addition,
+        #                 text = file,
+        #                 image = icon,
+        #                 values = [file, "", self._book._tabs[drive]._get_size(addition)])
+                
+        #         #highlight
+        #         tree.tag_configure(addition, background = "orange")
+
+            
+
+
 
         self.after(self._refresh, self.refresh)
 
-    def _get_icon(self, PATH, size):
+    def _get_icon(self, PATH):
         """Gets the icon association for any folder or file in the system
         
         Arguments:
             PATH {str} -- path to file or folder
-            size {str} -- equal to "small" or "large". Indicates to return the 16x16 image or 32x32 image
         
         Raises:
             TypeError -- Thrown if invalid arguments are given
@@ -123,37 +216,8 @@ class TkFileBrowser(tk.Frame):
 
         #https://stackoverflow.com/questions/21070423/python-sAaving-accessing-file-extension-icons-and-using-them-in-a-tkinter-progra/52957794#52957794
         #https://aecomputervision.blogspot.com/2018/10/getting-icon-association-for-any-file.html
-        SHGFI_ICON = 0x000000100
-        SHGFI_ICONLOCATION = 0x000001000
-        if size == "small":
-            SHIL_SIZE = 0x00001
-        elif size == "large":
-            SHIL_SIZE = 0x00002
-        else:
-            raise TypeError("Invalid argument for 'size'. Must be equal to 'small' or 'large'")
-            
-        ret, info = shell.SHGetFileInfo(PATH, 0, SHGFI_ICONLOCATION | SHGFI_ICON | SHIL_SIZE)
-        hIcon, iIcon, dwAttr, name, typeName = info
-        ico_x = win32api.GetSystemMetrics(win32con.SM_CXICON)
-        hdc = win32ui.CreateDCFromHandle(win32gui.GetDC(0))
-        hbmp = win32ui.CreateBitmap()
-        hbmp.CreateCompatibleBitmap(hdc, ico_x, ico_x)
-        hdc = hdc.CreateCompatibleDC()
-        hdc.SelectObject(hbmp)
-        hdc.DrawIcon((0, 0), hIcon)
-        win32gui.DestroyIcon(hIcon)
-
-        bmpinfo = hbmp.GetInfo()
-        bmpstr = hbmp.GetBitmapBits(True)
-        img = Image.frombuffer(
-            "RGBA",
-            (bmpinfo["bmWidth"], bmpinfo["bmHeight"]),
-            bmpstr, "raw", "BGRA", 0, 1
-        )
-
-        if size == "small":
-            img = img.resize((16, 16), Image.ANTIALIAS)
-        return img
+        return winIcon.get_icon(PATH, winIcon.SMALL)
+        
 
 class DriveBook(ttk.Notebook):
 
@@ -188,7 +252,7 @@ class DriveBook(ttk.Notebook):
             removals = list(set(display).difference(new))
             additions = list(set(new).difference(display))
 
-            #print("removed: ", removals, "added: ", additions)
+            print("removed: ", removals, "added: ", additions)
             
             for removal in removals:
                 #delete open nodes that have just been removed
@@ -207,18 +271,17 @@ class DriveBook(ttk.Notebook):
                 #reset drive icons
                 self._drive_icons = [i for i in self._drive_icons if i[0] != removal]
 
-            if additions != []:
-                for tab in self.tabs():
-                    self.forget(tab)
-                
-                self._draw_tabs()
+            for addition in additions:
+                self._drive_icons.append([addition, ImageTk.PhotoImage(self._parent._get_icon(addition))])
+                self._tabs[addition] = FileTree(self, addition)
+                self.add(self._tabs[addition], text = addition, image = self._drive_icons[-1][1], compound = tk.LEFT)
 
     def _get_drives(self):
         return [os.path.expanduser("~")] + win32api.GetLogicalDriveStrings().split('\x00')[:-1]
 
     def _get_icons(self):
         drives = self._get_drives()
-        return [[drive, ImageTk.PhotoImage(self._parent._get_icon(drive, "small"))] for drive in drives]
+        return [[drive, ImageTk.PhotoImage(self._parent._get_icon(drive))] for drive in drives]
 
     def _get_tab_name(self):
         """Returns the name of the tab which is currently open
@@ -278,7 +341,7 @@ class FileTree(tk.Frame):
                     self._tree.delete(child)
                 self._populate_path(id)
 
-        print("\n clicked: ", self._parent._parent._open)
+        #print("\n clicked: ", self._parent._parent._open)
 
     def _on_close(self, event):
         """Method called when the user closes a node. This must delete the node,
@@ -348,7 +411,7 @@ class FileTree(tk.Frame):
                 parent = node, 
                 index = tk.END, 
                 iid = fullpath,
-                tag = fullpath,
+                tags = (fullpath, ),
                 text = folder,
                 image = self._parent._foldericons[fullpath],
                 values = [folder, "", ""])
@@ -402,12 +465,15 @@ class FileTree(tk.Frame):
 
             #if the file is a shortcut, set the key as the whole path
             if type_ == ".lnk" or type_ == ".exe":
-                self._parent._fileicons[os.path.join(path, p)] = ImageTk.PhotoImage(
-                    self._parent._parent._get_icon(os.path.join(path, p), "small"))
+                if os.path.join(path, p) not in self._parent._fileicons:
+                    self._parent._fileicons[os.path.join(path, p)] = ImageTk.PhotoImage(
+                        self._parent._parent._get_icon(os.path.join(path, p)))
             else:
                 if type_ not in self._parent._fileicons:
                     self._parent._fileicons[type_] = ImageTk.PhotoImage(
-                        self._parent._parent._get_icon(os.path.join(path, p), "small"))
+                        self._parent._parent._get_icon(os.path.join(path, p)))
+
+            #print(self._parent._fileicons, "\n")
 
         files = []
         folders = []
@@ -427,7 +493,7 @@ class FileTree(tk.Frame):
                 folders.append(p)
                 if os.path.join(path, p) not in self._parent._foldericons:
                     self._parent._foldericons[os.path.join(path, p)] = ImageTk.PhotoImage(
-                        self._parent._parent._get_icon(os.path.join(path, p), "small"))
+                        self._parent._parent._get_icon(os.path.join(path, p)))
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
         return folders, files
