@@ -86,7 +86,7 @@ class TkFileBrowser(tk.Frame):
 
         self._book._refresh()
 
-        print(self._open)
+        #print(self._open)
 
         #work out which open nodes need to be updated
         nodes_to_refresh = []
@@ -142,58 +142,61 @@ class TkFileBrowser(tk.Frame):
                     if [drive.replace("\\", "\\"), deletion.replace("\\", "\\")] in self._open:
                         self._open.remove([drive.replace("\\", "\\"), deletion.replace("\\", "\\")])
 
-        #     #add new entries in the correct place, highlighting them and getting appropitate icons
-        #     for addition in additions:
+                #add new entries in the correct place, highlighting them and getting appropitate icons
+                for addition in additions:
 
-        #         if os.path.isdir(addition):
-        #             #make an icon if it doesn't already exist
-        #             if addition not in self._book._foldericons:
-        #                 self._book._foldericons[addition] = ImageTk.PhotoImage(
-        #                     self._get_icon(addition))
+                    if os.path.isdir(addition):
+                        #make an icon if it doesn't already exist
+                        if addition not in self._book._foldericons:
+                            self._book._foldericons[addition] = ImageTk.PhotoImage(
+                                self._get_icon(addition))
 
-        #             #get the name
-        #             folder = addition.split("\\")[-1]
+                        #get the name
+                        folder = addition.split("\\")[-1]
+                        #work out all the other folders so we know an approprate place to put the new folder
+                        glob_pattern = os.path.join(orignode, "*")
+                        folders = [i for i in sorted(glob(glob_pattern), key=os.path.getctime) if os.path.isdir(i)]
 
-        #             tree.insert(
-        #                 parent = node, 
-        #                 index = os.listdir(orignode).index(folder), #insert in an appropriate place
-        #                 iid = addition,
-        #                 tags = (addition, ),
-        #                 text = folder,
-        #                 image = self._book._foldericons[addition],
-        #                 values = [folder, "", ""])
-        #             #setup a dummy so the '+' appears before it's loaded. Child stuff will be loaded when the user
-        #             #clicks on the plus, and the dummy will be removed. (or not if there are no files)
-        #             tree.insert(parent = addition, index = tk.END, tag = "dummy", text = "No avaliable files")
+                        tree.insert(
+                            parent = node, 
+                            index = folders.index(addition), #insert in an appropriate place
+                            iid = addition,
+                            tags = (addition, ),
+                            text = folder,
+                            image = self._book._foldericons[addition],
+                            values = [folder, "", ""])
+                        #setup a dummy so the '+' appears before it's loaded. Child stuff will be loaded when the user
+                        #clicks on the plus, and the dummy will be removed. (or not if there are no files)
+                        tree.insert(parent = addition, index = tk.END, tag = "dummy", text = "No avaliable files")
 
-        #         elif os.path.isfile(addition):
-        #             _, type_ = os.path.splitext(addition)
+                    elif os.path.isfile(addition):
+                        _, type_ = os.path.splitext(addition)
         
-        #             if type_ == ".lnk" or type_ == ".exe":
-        #                 if addition not in self._book._fileicons:
-        #                     self._book._fileicons[addition] = ImageTk.PhotoImage(
-        #                         self._get_icon(addition)
-        #                     )
-        #                 icon = self._book._fileicons[addition]
-        #             else:
-        #                 if type_ not in self._book._fileicons:
-        #                     self._book._fileicons[type_] = ImageTk.PhotoImage(
-        #                         self._get_icon(type_)
-        #                     )
-        #                 icon = self._book._fileicons[type_]
+                        if type_ == ".lnk" or type_ == ".exe":
+                            if addition not in self._book._fileicons:
+                                self._book._fileicons[addition] = ImageTk.PhotoImage(
+                                    self._get_icon(addition)
+                                )
+                            icon = self._book._fileicons[addition]
+                        else:
+                            if type_ not in self._book._fileicons:
+                                self._book._fileicons[type_] = ImageTk.PhotoImage(
+                                    self._get_icon(type_)
+                                )
+                            icon = self._book._fileicons[type_]
 
-        #             file = addition.split("\\")[-1]
-        #             tree.insert(
-        #                 parent = node, 
-        #                 index = tk.END, 
-        #                 iid = addition,
-        #                 tag = addition,
-        #                 text = file,
-        #                 image = icon,
-        #                 values = [file, "", self._book._tabs[drive]._get_size(addition)])
+                        file = addition.split("\\")[-1]
+                        tree.insert(
+                            parent = node, 
+                            index = tk.END, 
+                            iid = addition,
+                            tags = (addition, ),
+                            text = file,
+                            image = icon,
+                            values = [file, "", self._book._tabs[drive]._get_size(addition)])
                 
-        #         #highlight
-        #         tree.tag_configure(addition, background = "orange")
+                    #highlight
+                    tree.tag_configure(addition, background = "orange")
 
             
 
