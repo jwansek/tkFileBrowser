@@ -11,12 +11,15 @@ import os
 #stuff to do:
 #   make the files actually refresh instead of just detecting it
 
+MENU_DELETE = "menu_delete"
+MENU_OPEN = "open"
+ALL = [MENU_DELETE, MENU_OPEN]
 
 class TkFileBrowser(tk.Frame):
 
     _open = []
 
-    def __init__(self, parent, command, refresh = 20, types = [], showhidden = False):
+    def __init__(self, parent, command, rightclick_options = ALL, refresh = 20, types = [], showhidden = False):
         """Widget for browsing a windows filesystem.
         
         Arguments:
@@ -24,6 +27,8 @@ class TkFileBrowser(tk.Frame):
             command {function} -- Called when the user clicks on a file
         
         Keyword Arguments:
+            rightclick_options {list} -- the options to show up in the menu when the user right
+            clicks. Choose from [MENU_DELETE, MENU_OPEN] or just use ALL (default: ALL)
             refresh {int} -- how often to refresh browser (ms) (default: {20})
             types {list} -- file types that show up. Leave blank for all files: e
                 e.g. [".png", ".jpg"] (default: {[]})
@@ -33,6 +38,7 @@ class TkFileBrowser(tk.Frame):
         tk.Frame.__init__(self, parent)
         self._parent = parent
         self._command = command
+        self._rightclick_options = rightclick_options
         self._refresh = refresh
         self._types = types
         self._showhidden = showhidden
@@ -221,7 +227,6 @@ class TkFileBrowser(tk.Frame):
         #https://aecomputervision.blogspot.com/2018/10/getting-icon-association-for-any-file.html
         return winIcon.get_icon(PATH, winIcon.SMALL)
         
-
 class DriveBook(ttk.Notebook):
 
     _foldericons = {}
@@ -323,6 +328,15 @@ class FileTree(tk.Frame):
         self._populate_path(drive)
         self._tree.bind('<<TreeviewOpen>>', self._on_click)
         self._tree.bind('<<TreeviewClose>>', self._on_close)
+        if self._parent._parent._rightclick_options != []:
+            self._tree.bind('<Button-3>', self._draw_menu)
+
+    def _draw_menu(self, event):
+        menu = RightClickMenu(self._tree, self._parent._parent._rightclick_options, self._tree.identify_row(event.y))
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
 
     def _on_click(self, event):
         id = os.path.normpath(self._tree.focus())
@@ -500,6 +514,19 @@ class FileTree(tk.Frame):
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
         return folders, files
+
+class RightClickMenu(tk.Menu):
+    def __init__(self, parent, options, item):
+        tk.Menu.__init__(self, parent, tearoff = False)
+        self.parent = parent
+
+        print(item)
+        if MENU_DELETE in options:
+            self.add_command(label = "Delete", command = lambda: print("Delete"))
+        if MENU_OPEN in options:
+            self.add_command(label = "Open with default program", command = lambda: print("Open"))
+
+
 
 def on_click(path):
     print("click: ", path)
