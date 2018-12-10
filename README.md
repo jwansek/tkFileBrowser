@@ -5,7 +5,6 @@ A file browser designed for use with Python tkinter applications
 
 * Uses the Windows API to get the exact icon for any folder or application.
 * Refreshes when drives are added or removed
-* Final version will refresh the tree too
 
 ## Example Usage
 
@@ -22,7 +21,7 @@ A file browser designed for use with Python tkinter applications
         root.mainloop()
 
 ## Documentation
-TkFileBrowser(parent, command, [refresh = 20], [types = []], [showhidden = False])
+    TkFileBrowser(parent, command, [refresh = 20], [types = []], [showhidden = False])
 
 > parent
 
