@@ -8,12 +8,10 @@ import win32api
 import winIcon
 import os
 
-#stuff to do:
-#   make the files actually refresh instead of just detecting it
-
 MENU_DELETE = "menu_delete"
 MENU_OPEN = "open"
-ALL = [MENU_DELETE, MENU_OPEN]
+MENU_CLIPBOARD = "clipboard"
+ALL = [MENU_DELETE, MENU_OPEN, MENU_CLIPBOARD]
 
 class TkFileBrowser(tk.Frame):
 
@@ -28,7 +26,7 @@ class TkFileBrowser(tk.Frame):
         
         Keyword Arguments:
             rightclick_options {list} -- the options to show up in the menu when the user right
-            clicks. Choose from [MENU_DELETE, MENU_OPEN] or just use ALL (default: ALL)
+            clicks. Choose from [MENU_DELETE, MENU_OPEN, MENU_CLIPBOARD] or just use ALL (default: ALL)
             refresh {int} -- how often to refresh browser (ms) (default: {20})
             types {list} -- file types that show up. Leave blank for all files: e
                 e.g. [".png", ".jpg"] (default: {[]})
@@ -42,6 +40,9 @@ class TkFileBrowser(tk.Frame):
         self._refresh = refresh
         self._types = types
         self._showhidden = showhidden
+
+        self._img_clipboard = tk.PhotoImage(file = os.path.join("Assets", "clipboard.png"))
+        self._img_cross = tk.PhotoImage(file = os.path.join("Assets", "cross.png"))
 
         self._book = DriveBook(self)
         self._book.pack(fill = tk.BOTH, expand = True)
@@ -92,7 +93,7 @@ class TkFileBrowser(tk.Frame):
 
         self._book._refresh()
 
-        #print(self._open)
+        print(self._open)
 
         #work out which open nodes need to be updated
         nodes_to_refresh = []
@@ -118,7 +119,7 @@ class TkFileBrowser(tk.Frame):
             files, folders = self._book._tabs[drive]._get_dirs_in_path(drive)
             actualdirs = files + folders
             if actualdirs != childirs:
-                nodes_to_refresh.append(drive)
+                nodes_to_-refresh.append(drive)
 
         #print(nodes_to_refresh)
 
@@ -203,10 +204,6 @@ class TkFileBrowser(tk.Frame):
                 
                     #highlight
                     tree.tag_configure(addition, background = "orange")
-
-            
-
-
 
         self.after(self._refresh, self.refresh)
 
@@ -332,7 +329,7 @@ class FileTree(tk.Frame):
             self._tree.bind('<Button-3>', self._draw_menu)
 
     def _draw_menu(self, event):
-        menu = RightClickMenu(self._tree, self._parent._parent._rightclick_options, self._tree.identify_row(event.y))
+        menu = RightClickMenu(self, self._parent._parent._rightclick_options, self._tree.identify_row(event.y))
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
@@ -515,18 +512,23 @@ class FileTree(tk.Frame):
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
         return folders, files
 
+#for efficiency, it would be better to instatiate this only once, since now it's instatiated
+#every time the user right clicks
 class RightClickMenu(tk.Menu):
     def __init__(self, parent, options, item):
         tk.Menu.__init__(self, parent, tearoff = False)
         self.parent = parent
 
         print(item)
-        if MENU_DELETE in options:
-            self.add_command(label = "Delete", command = lambda: print("Delete"))
-        if MENU_OPEN in options:
+        #only show menu options if the dev selected them
+        #if the dev selected no options, binding is never set
+        #it must be a file for the open option to appear
+        if MENU_OPEN in options and os.path.isfile(item):
             self.add_command(label = "Open with default program", command = lambda: print("Open"))
-
-
+        if MENU_DELETE in options:
+            self.add_command(label = "Delete", image = self.parent._parent._parent._img_cross, compound = tk.LEFT, command = lambda: os.remove(item))
+        if MENU_CLIPBOARD in options:
+            self.add_command(label = "Copy path to clipboard", image = self.parent._parent._parent._img_clipboard, compound = tk.LEFT, command = lambda: print("clipboard"))
 
 def on_click(path):
     print("click: ", path)
