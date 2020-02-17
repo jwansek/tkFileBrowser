@@ -119,7 +119,7 @@ class TkFileBrowser(tk.Frame):
             files, folders = self._book._tabs[drive]._get_dirs_in_path(drive)
             actualdirs = files + folders
             if actualdirs != childirs:
-                nodes_to_-refresh.append(drive)
+                nodes_to_refresh.append(drive)
 
         #print(nodes_to_refresh)
 
@@ -491,23 +491,27 @@ class FileTree(tk.Frame):
 
         files = []
         folders = []
-        for p in os.listdir(path):
-            if p.startswith(".") and not self._showhidden:
-                continue
-            
-            if os.path.isfile(os.path.join(path, p)):
-                name, type_ = os.path.splitext(p)
-                if self._types == []:
-                    add(p, type_)
-                else:
-                    if type_ in self._types:
-                        add(p, type_)
+        try:
+            for p in os.listdir(path):
+                if p.startswith(".") and not self._showhidden:
+                    continue
                 
-            else:
-                folders.append(p)
-                if os.path.join(path, p) not in self._parent._foldericons:
-                    self._parent._foldericons[os.path.join(path, p)] = ImageTk.PhotoImage(
-                        self._parent._parent._get_icon(os.path.join(path, p)))
+                if os.path.isfile(os.path.join(path, p)):
+                    name, type_ = os.path.splitext(p)
+                    if self._types == []:
+                        add(p, type_)
+                    else:
+                        if type_ in self._types:
+                            add(p, type_)
+                    
+                else:
+                    folders.append(p)
+                    if os.path.join(path, p) not in self._parent._foldericons:
+                        self._parent._foldericons[os.path.join(path, p)] = ImageTk.PhotoImage(
+                            self._parent._parent._get_icon(os.path.join(path, p)))
+        except OSError:
+            pass
+        
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
         return folders, files
@@ -538,6 +542,6 @@ if __name__ == "__main__":
     browser = TkFileBrowser(root, command = on_click)
     browser.pack(side = tk.LEFT)
 
-    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Users\Edward\Documents\random_pyapps\tkFileBrowser\tkFileBrowser\empty_folder")).pack(side = tk.LEFT)
+    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"F:\Python Projects\tkFileBrowser")).pack(side = tk.LEFT)
 
     root.mainloop()

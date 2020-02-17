@@ -1,0 +1,3 @@
+pypiwin32
+Pillow
+win32gui
