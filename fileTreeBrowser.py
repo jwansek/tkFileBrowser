@@ -232,7 +232,7 @@ class DriveBook(ttk.Notebook):
     _tabs = {}
 
     def __init__(self, parent):
-        ttk.Notebook.__init__(self)
+        ttk.Notebook.__init__(self, parent)
         self._parent = parent
 
         self._draw_tabs()
@@ -541,9 +541,25 @@ def on_click(path):
 # to debug, `python -m tkFileBrowser.fileTreeBrowser` from parent directory
 if __name__ == "__main__":
     root = tk.Tk()
-    browser = TkFileBrowser(root, command = on_click)
-    browser.pack(side = tk.LEFT)
+    # browser = TkFileBrowser(root, command = on_click)
+    # browser.pack(side = tk.LEFT)
 
-    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Users\eden\Pictures")).pack(side = tk.LEFT)
+    paned = ttk.Panedwindow(root, orient = tk.HORIZONTAL)
+    paned.pack(fill = tk.BOTH, expand = True)
+
+    browser = TkFileBrowser(paned, command = on_click)
+    # # lbl = tk.Label(root, text = "sneed")
+    # lbl = ttk.Frame(root)
+
+    # ttk.Label(root, text = "sneed").pack(fill = tk.BOTH, expand = True)
+    # tree = ttk.Treeview(lbl)
+    # tree.pack(fill = tk.BOTH, expand = True)
+
+    paned.add(browser)
+
+    btn = ttk.Button(paned, text = "Goto", command = lambda: browser.see(r"C:\Users\eden\Pictures"))
+    paned.add(btn)
+
+    
 
     root.mainloop()
