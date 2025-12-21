@@ -537,7 +537,7 @@ class FileTree(tk.Frame):
         
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
-        return sorted(folders), sorted(files)
+        return sorted(folders, key=str.casefold), sorted(files, key=str.casefold)
 
 #for efficiency, it would be better to instatiate this only once, since now it's instatiated
 #every time the user right clicks
