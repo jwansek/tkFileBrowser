@@ -42,6 +42,7 @@ class TkFileBrowser(tk.Frame):
         self._refresh = refresh
         self._types = types
         self._showhidden = showhidden
+        self._last_peeked = None
 
         self._img_clipboard = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "Assets", "clipboard.png"))
         self._img_cross = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "Assets", "cross.png"))
@@ -60,6 +61,8 @@ class TkFileBrowser(tk.Frame):
         if not os.path.exists(path):
             print("The system couldn't find the path: '%s'" % path)
             return
+        
+        print("Peeking %s" % path)
 
         #open the correct book tab
         split = path.replace("\\", "/").split("/")
@@ -84,6 +87,12 @@ class TkFileBrowser(tk.Frame):
                 self._open.append([split[0]+"\\", "\\".join(split[:i+2])])
 
             self._book._tabs[drive]._tree.see("\\".join(split))
+
+        if self._last_peeked is not None:
+            self._book._tabs[drive]._tree.tag_configure(self._last_peeked, background = "white")
+
+        self._book._tabs[drive]._tree.tag_configure(path, background = "lightblue")
+        self._last_peeked = path
 
     def refresh(self):
         def get_drive_and_path(search):
@@ -329,6 +338,12 @@ class FileTree(tk.Frame):
         self._tree.bind('<<TreeviewClose>>', self._on_close)
         if self._parent._parent._rightclick_options != []:
             self._tree.bind('<Button-3>', self._draw_menu)
+        self._tree.bind("<Double-Button-1>", self._on_double_click)
+
+    def _on_double_click(self, event):
+        fullpath = self._tree.identify_row(event.y)
+        if os.path.isfile(fullpath):
+            self._parent._parent._command(fullpath)
 
     def _draw_menu(self, event):
         menu = RightClickMenu(self, self._parent._parent._rightclick_options, self._tree.identify_row(event.y))
@@ -347,7 +362,7 @@ class FileTree(tk.Frame):
             #print(self._parent._parent._open)
 
         if os.path.isfile(id):
-            self._command(id)
+            pass
         else:
             try:
                 self._populate_path(id)
@@ -453,7 +468,7 @@ class FileTree(tk.Frame):
                 parent = node, 
                 index = tk.END, 
                 iid = fullpath,
-                tag = fullpath,
+                tags = (fullpath, ),
                 text = file,
                 image = icon,
                 values = [file, "", self._get_size(fullpath)])
@@ -564,7 +579,10 @@ if __name__ == "__main__":
 
     paned.add(browser)
 
-    btn = ttk.Button(paned, text = "Goto", command = lambda: browser.see(r"C:\Users\eden\Pictures"))
+    import random
+
+    pictures_dir = os.path.join(os.path.expanduser("~"), "Pictures")
+    btn = ttk.Button(paned, text = "Goto", command = lambda: browser.see(os.path.join(pictures_dir, random.choice(os.listdir(pictures_dir)))))
     paned.add(btn)
 
     
