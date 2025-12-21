@@ -5,8 +5,9 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import win32api
-import winIcon
 import os
+
+from . import windowsIcons
 
 MENU_DELETE = "menu_delete"
 MENU_OPEN = "open"
@@ -41,8 +42,8 @@ class TkFileBrowser(tk.Frame):
         self._types = types
         self._showhidden = showhidden
 
-        self._img_clipboard = tk.PhotoImage(file = os.path.join("Assets", "clipboard.png"))
-        self._img_cross = tk.PhotoImage(file = os.path.join("Assets", "cross.png"))
+        self._img_clipboard = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "Assets", "clipboard.png"))
+        self._img_cross = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "Assets", "cross.png"))
 
         self._book = DriveBook(self)
         self._book.pack(fill = tk.BOTH, expand = True)
@@ -222,7 +223,7 @@ class TkFileBrowser(tk.Frame):
 
         #https://stackoverflow.com/questions/21070423/python-sAaving-accessing-file-extension-icons-and-using-them-in-a-tkinter-progra/52957794#52957794
         #https://aecomputervision.blogspot.com/2018/10/getting-icon-association-for-any-file.html
-        return winIcon.get_icon(PATH, winIcon.SMALL)
+        return windowsIcons.get_icon(PATH, windowsIcons.SMALL)
         
 class DriveBook(ttk.Notebook):
 
@@ -537,11 +538,12 @@ class RightClickMenu(tk.Menu):
 def on_click(path):
     print("click: ", path)
 
+# to debug, `python -m tkFileBrowser.fileTreeBrowser` from parent directory
 if __name__ == "__main__":
     root = tk.Tk()
     browser = TkFileBrowser(root, command = on_click)
     browser.pack(side = tk.LEFT)
 
-    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"F:\Python Projects\tkFileBrowser")).pack(side = tk.LEFT)
+    ttk.Button(root, text = "Goto", command = lambda: browser.see(r"C:\Users\eden\Pictures")).pack(side = tk.LEFT)
 
     root.mainloop()

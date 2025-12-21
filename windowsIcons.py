@@ -45,7 +45,7 @@ def get_icon(PATH, size):
         return
 
     if size == "small":
-        img = img.resize((16, 16), Image.ANTIALIAS)
+        img = img.resize((16, 16))
     return img
 
 class WinIconError(Exception):
