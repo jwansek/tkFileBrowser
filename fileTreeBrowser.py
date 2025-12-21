@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
+import matplotlib
 import win32api
 import os
 
@@ -388,28 +389,34 @@ class FileTree(tk.Frame):
         recurse(id)
     
     def _get_size(self, path):
-        """Returns the size of a file. From:
-        https://pyinmyeye.blogspot.co.uk/2012/07/tkinter-multi-column-list-demo.html
-        
-        Arguments:
-            path {str} -- Path to file
-        
-        Returns:
-            str -- file size in bytes/KB/MB/GB
-        """
-
         size = os.path.getsize(path)
-        KB = 1024.0
-        MB = KB * KB
-        GB = MB * KB
-        if size >= GB:
-            return ('{:,.1f} GB').format(size / GB)
-        elif size >= MB:
-            return ('{:,.1f} MB').format(size / MB)
-        elif size >= KB:
-            return ('{:,.1f} KB').format(size / KB)
+        if size <= 1024:
+            return "%i bytes" % size
         else:
-            return ('{} bytes').format(size)
+            fmt = matplotlib.ticker.EngFormatter("B", places = 1)
+            return fmt(os.path.getsize(path))
+        # """Returns the size of a file. From:
+        # https://pyinmyeye.blogspot.co.uk/2012/07/tkinter-multi-column-list-demo.html
+        
+        # Arguments:
+        #     path {str} -- Path to file
+        
+        # Returns:
+        #     str -- file size in bytes/KB/MB/GB
+        # """
+
+        # size = os.path.getsize(path)
+        # KB = 1024.0
+        # MB = KB * KB
+        # GB = MB * KB
+        # if size >= GB:
+        #     return ('{:,.1f} GB').format(size / GB)
+        # elif size >= MB:
+        #     return ('{:,.1f} MB').format(size / MB)
+        # elif size >= KB:
+        #     return ('{:,.1f} KB').format(size / KB)
+        # else:
+        #     return ('{} bytes').format(size)
 
     def _populate_path(self, path):
         #if the tree is blank, write to the root
@@ -515,7 +522,7 @@ class FileTree(tk.Frame):
         
 
         #print("\n\nfolders: ", folders, "\nfiles: ", files)
-        return folders, files
+        return sorted(folders), sorted(files)
 
 #for efficiency, it would be better to instatiate this only once, since now it's instatiated
 #every time the user right clicks
