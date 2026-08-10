@@ -1,5 +1,7 @@
 # tkFileBrowser
-A file browser designed for use with Python tkinter applications
+A file browser designed for use with Python tkinter applications.
+
+As used in [EEHPH2 image viewer](https://github.com/jwansek/eehph2).
 
 ![Demo image](https://github.com/jwansek/tkFileBrowser/blob/master/demoimage.png?raw=true)
 
@@ -23,28 +25,27 @@ A file browser designed for use with Python tkinter applications
 ## Documentation
     TkFileBrowser(parent, command, [refresh = 20], [types = []], [showhidden = False])
 
-> parent
+>`parent`
 
 Frame in which the widget will be placed
 
->command
+>`command`
 
 Function to be run when the user clicks on a file. The path is an argument
 
->refresh
+>`refresh`
 
 How often to check for updates in the file system. Default 20ms
 
->types
+>`types`
 
 List of file types that will show up. Empty means all files. Default []
 
->showhidden
+>`showhidden`
 
 Show hidden files "." or not. Default False
 
->.see(path)
+>`.see(path)`
 
-Open all nodes to a path and ensure it is shown on screen
+Open all nodes to a path and ensure it is shown on screen (peek function)
 
-More coming!
